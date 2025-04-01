@@ -14,7 +14,7 @@
             font-family: Arial, sans-serif;
         }
         .container {
-            max-width: 800px;
+            max-width: 95%;
             margin: 0 auto;
         }
         .header {
@@ -32,6 +32,9 @@
             background: black;
             border-radius: 8px;
             touch-action: none;
+            width: 100%;
+            max-width: 1000px;
+            height: auto;
         }
         button {
             padding: 8px 16px;
@@ -81,11 +84,19 @@
         const undoStack = [];
         let currentPaths = [];
 
-        // Set initial canvas state
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Size control
+        function resizeCanvas() {
+            if (window.innerWidth > 768) {
+                canvas.width = Math.min(window.innerWidth * 0.9, 1000);
+                canvas.height = canvas.width * 0.5;
+            } else {
+                canvas.width = window.innerWidth * 0.95;
+                canvas.height = window.innerHeight * 0.6;
+            }
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
         document.getElementById('sizeSlider').addEventListener('input', (e) => {
             strokeSize = parseInt(e.target.value);
         });
