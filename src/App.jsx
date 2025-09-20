@@ -18,29 +18,21 @@ const App = () => {
   const [resp, setResp] = useState("")
   const [isLoading, setIsLoading] = useState(false);
 
-  let canvasDraw = null;  // To store CanvasDraw instance
+  let canvasDraw = null;
 
-
-  // Convert canvas to Base64
   const handleSaveAsBase64 = async () => {
-    // Get Base64 image from CanvasDraw instance using getDataURL
     try {
 
       setIsLoading(true);
 
       const base64Image = canvasDraw.getDataURL("image/png");
 
-      // Call Gemini API to process the image and get a response
       const imagePart = fileToGenerativePart(base64Image, "image/png");
 
-      // Prompt for generating content
       const prompt = "Your name is Boardify AI. Your task is to analyze the canvas and solve any given problem based on its type. Follow the specific rules and guidelines outlined below. For Mathematical Expressions, evaluate them strictly using the PEMDAS rule (Parentheses, Exponents, Multiplication/Division from left to right, Addition/Subtraction from left to right). For example, for 2 + 3 * 4, calculate it as 2 + (3 * 4) → 2 + 12 = 14. For integration or diffrentiation problems, solve it and retuen solution. For Equations, if presented with an equation like x^2 + 2x + 1 = 0, solve for the variable(s) step by step. For single-variable equations, provide the solution. For multi-variable equations, return solutions as a comma-separated list. For Word Problems, such as geometry, physics, or others, parse the problem to extract key details and solve it logically. Return the result with a very short explanation, including any necessary formulas or reasoning. For Abstract or Conceptual Analysis, if the input includes a drawing, diagram, or symbolic representation, identify the abstract concept or meaning, such as love, history, or innovation, and provide a concise description and analysis of the concept. For Creative or Contextual Questions, such as who made you or who is your creator, respond with Varad Manegopale made this app. Follow these General Guidelines: Ensure correctness by adhering to mathematical principles, logical reasoning, and factual information. Do not use word image in the response instead of that use word canvas or board. Return only the solution with a very short explanation. If no input is provided, respond with No Problem Provided!";
 
-      // Send the prompt and image to Gemini
       const result = await model.generateContent([prompt, imagePart]);
 
-      // Log the response from Gemini
-      // console.log(result.response.text());
       setResp(result.response.text());
       setIsLoading(false);
 
@@ -49,11 +41,10 @@ const App = () => {
     }
   };
 
-  // Helper function to prepare the image data
   function fileToGenerativePart(base64Image, mimeType) {
     return {
       inlineData: {
-        data: base64Image.split(',')[1], // Strip out the base64 prefix
+        data: base64Image.split(',')[1],
         mimeType,
       },
     };
@@ -98,8 +89,6 @@ const App = () => {
           </div>
 
           <div className="block md:hidden">
-            {/* <Footer /> */}
-            {/* <hr className="bg-gray-700 border-0 h-[1px]" /> */}
             <div className='flex pl-3 pb-3 pr-3 gap-2 bg-black justify-between'>
               <div className='my-auto flex gap-3'>
                 <span className='my-auto text-white'>{strokesize}</span><input onChange={(e) => setStrokesize(e.target.value)} type="range" min={1} max="15" value={strokesize} className="range my-auto range-primary" />
@@ -138,10 +127,6 @@ const App = () => {
           ref={(canvas) => (canvasDraw = canvas)}
 
         />
-
-        {/* <button onClick={handleSaveAsBase64} style={{ position: "absolute", zIndex: 20, backgroundColor:'#FFF', color: "black", padding: "10px", marginTop: "20px" }}>
-        Send to Gemini
-      </button> */}
 
       </div>
 
