@@ -9,7 +9,7 @@ const Header = () => {
         <div >
 
             <div className='flex p-3 bg-black gap-2 justify-between'>
-                <h2 className='text-2xl font-bold text-white my-auto'>Boardify AI</h2>
+                <h2 className='text-2xl font-bold text-white my-auto'>AImagine Board</h2>
                 {/* <div className='flex my-auto gap-2'>
                     <div className='rounded-full bg-white w-10 h-10'>
                     </div>
