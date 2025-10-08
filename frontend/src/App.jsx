@@ -10,7 +10,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const genAI = new GoogleGenerativeAI(apikey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const App = ({ onLogout, userEmail }) => {
   const [strokesize, setStrokesize] = useState(2);
