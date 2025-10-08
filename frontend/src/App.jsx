@@ -4,13 +4,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Eraser, Loader, Pencil, Undo, LogOut, Crown } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
-const apikey = import.meta.env.VITE_GEMINI_API_KEY;
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-const genAI = new GoogleGenerativeAI(apikey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
 const App = ({ onLogout, userEmail }) => {
   const [strokesize, setStrokesize] = useState(2);
@@ -19,13 +15,14 @@ const App = ({ onLogout, userEmail }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan] = useState("Free");
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [model, setModel] = useState(null);
 
   let canvasDraw = null;
 
   // ✅ Check if user is Premium
   useEffect(() => {
     const checkPlan = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("premium_users")
         .select("*")
         .eq("email", userEmail)
@@ -33,14 +30,30 @@ const App = ({ onLogout, userEmail }) => {
 
       if (data && new Date(data.expiry) > new Date()) {
         setPlan("Premium");
+
+        // 🔑 Use premium key & model
+        const premiumApiKey = import.meta.env.VITE_GEMINI_PREMIUM_API_KEY;
+        const genAI = new GoogleGenerativeAI(premiumApiKey);
+        setModel(genAI.getGenerativeModel({ model: "gemini-2.5-pro" }));
       } else {
         setPlan("Free");
+
+        // 🔑 Use free key & model
+        const freeApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const genAI = new GoogleGenerativeAI(freeApiKey);
+        setModel(genAI.getGenerativeModel({ model: "gemini-2.5-flash" }));
       }
     };
+
     if (userEmail) checkPlan();
   }, [userEmail]);
 
   const handleSaveAsBase64 = async () => {
+    if (!model) {
+      setResp("Model not initialized yet. Please wait...");
+      return;
+    }
+
     try {
       setIsLoading(true);
       const base64Image = canvasDraw.getDataURL("image/png");
@@ -83,8 +96,8 @@ const App = ({ onLogout, userEmail }) => {
   // ✅ Razorpay payment
   const handleUpgrade = async () => {
     const options = {
-      key: import.meta.env.VITE_RAZORPAY_TEST_KEY, // Replace with your Razorpay test key
-      amount: 1000 * 100, // 1000 INR in paise
+      key: import.meta.env.VITE_RAZORPAY_TEST_KEY,
+      amount: 1000 * 100,
       currency: "INR",
       name: "AImagine Board",
       description: "Premium Plan - 1 Month",
@@ -106,15 +119,17 @@ const App = ({ onLogout, userEmail }) => {
         } else {
           setPlan("Premium");
           alert("✅ Payment successful! Premium activated for 1 month.");
+
+          // Switch to premium key and model
+          const premiumApiKey = import.meta.env.VITE_GEMINI_PREMIUM_API_KEY;
+          const genAI = new GoogleGenerativeAI(premiumApiKey);
+          setModel(genAI.getGenerativeModel({ model: "gemini-2.5-pro" }));
+
           setShowPlanModal(false);
         }
       },
-      prefill: {
-        email: userEmail,
-      },
-      theme: {
-        color: "#2563eb",
-      },
+      prefill: { email: userEmail },
+      theme: { color: "#2563eb" },
     };
 
     const razor = new window.Razorpay(options);
@@ -222,12 +237,15 @@ const App = ({ onLogout, userEmail }) => {
       {showPlanModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
           <div className="bg-gray-900 text-white p-8 rounded-2xl w-80 shadow-xl text-center">
-            <h2 className="text-2xl font-bold mb-4">Your Plan</h2>
+            <h2 className="text-2xl font-bold mb-2">Your Plan</h2>
+            <p className="text-sm text-gray-400 mb-4">{userEmail}</p>
             <p className="mb-2">Current: {plan}</p>
 
             {plan === "Free" ? (
               <>
-                <p className="text-gray-400 mb-4">Upgrade to Premium for ₹1000/month</p>
+                <p className="text-gray-400 mb-4">
+                  Upgrade to <span className="text-yellow-400 font-semibold">Premium</span> for ₹1000/month
+                </p>
                 <button onClick={handleUpgrade} className="btn btn-success w-full">
                   Upgrade Now
                 </button>
