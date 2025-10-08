@@ -17,68 +17,36 @@ const App = ({ onLogout, userEmail }) => {
   const [strokecolor, setStrokecolor] = useState("#FFF");
   const [resp, setResp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [plan, setPlan] = useState("Checking...");
+  const [plan, setPlan] = useState("Free");
   const [showPlanModal, setShowPlanModal] = useState(false);
-  const [isUpgrading, setIsUpgrading] = useState(false);
 
   let canvasDraw = null;
 
   // ✅ Check if user is Premium
   useEffect(() => {
     const checkPlan = async () => {
-      if (!userEmail) {
-        console.warn("No user email found");
-        setPlan("Free");
-        return;
-      }
-
-      const normalizedEmail = userEmail.toLowerCase().trim();
-      console.log("🔍 Checking plan for:", normalizedEmail);
-
       const { data, error } = await supabase
         .from("premium_users")
-        .select("email, expiry")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+        .select("*")
+        .eq("email", userEmail)
+        .single();
 
-      console.log("🧾 Supabase plan data:", data, error);
-
-      if (error) {
-        console.error("Supabase fetch error:", error);
+      if (data && new Date(data.expiry) > new Date()) {
+        setPlan("Premium");
+      } else {
         setPlan("Free");
-        return;
       }
-
-      if (data && data.expiry) {
-        const expiry = new Date(data.expiry);
-        const now = new Date();
-        console.log("🕒 Expiry:", expiry.toISOString(), "Now:", now.toISOString());
-
-        if (expiry > now) {
-          setPlan("Premium");
-          return;
-        }
-      }
-
-      setPlan("Free");
     };
-
-    checkPlan();
+    if (userEmail) checkPlan();
   }, [userEmail]);
 
   const handleSaveAsBase64 = async () => {
-    if (plan !== "Premium") {
-      setResp("⚠️ Only Premium users can use the Calculate feature.");
-      return;
-    }
-
     try {
       setIsLoading(true);
       const base64Image = canvasDraw.getDataURL("image/png");
       const imagePart = fileToGenerativePart(base64Image, "image/png");
 
-      const prompt =
-        "Your name is AImagine Board. Your task is to analyze the canvas and solve any given problem based on its type. Follow the specific rules and guidelines outlined below. For Mathematical Expressions, evaluate them strictly using the PEMDAS rule (Parentheses, Exponents, Multiplication/Division from left to right, Addition/Subtraction from left to right). For example, for 2 + 3 * 4, calculate it as 2 + (3 * 4) → 2 + 12 = 14. For integration or differentiation problems, solve it and return solution. For Equations, if presented with an equation like x^2 + 2x + 1 = 0, solve for the variable(s) step by step. For single-variable equations, provide the solution. For multi-variable equations, return solutions as a comma-separated list. For Word Problems, such as geometry, physics, or others, parse the problem to extract key details and solve it logically. Return the result with a very short explanation, including any necessary formulas or reasoning. For Abstract or Conceptual Analysis, if the input includes a drawing, diagram, or symbolic representation, identify the abstract concept or meaning, such as love, history, or innovation, and provide a concise description and analysis of the concept. For Creative or Contextual Questions, such as who made you or who is your creator, respond with Krish Patel made this app. Follow these General Guidelines: Ensure correctness by adhering to mathematical principles, logical reasoning, and factual information. Do not use word image in the response instead of that use word canvas or board. Return only the solution with a very short explanation. If no input is provided, respond with No Problem Provided!";
+      const prompt = "Your name is AImagine Board. Your task is to analyze the canvas and solve any given problem based on its type. Follow the specific rules and guidelines outlined below. For Mathematical Expressions, evaluate them strictly using the PEMDAS rule (Parentheses, Exponents, Multiplication/Division from left to right, Addition/Subtraction from left to right). For example, for 2 + 3 * 4, calculate it as 2 + (3 * 4) → 2 + 12 = 14. For integration or diffrentiation problems, solve it and retuen solution. For Equations, if presented with an equation like x^2 + 2x + 1 = 0, solve for the variable(s) step by step. For single-variable equations, provide the solution. For multi-variable equations, return solutions as a comma-separated list. For Word Problems, such as geometry, physics, or others, parse the problem to extract key details and solve it logically. Return the result with a very short explanation, including any necessary formulas or reasoning. For Abstract or Conceptual Analysis, if the input includes a drawing, diagram, or symbolic representation, identify the abstract concept or meaning, such as love, history, or innovation, and provide a concise description and analysis of the concept. For Creative or Contextual Questions, such as who made you or who is your creator, respond with Krish Patel made this app. Follow these General Guidelines: Ensure correctness by adhering to mathematical principles, logical reasoning, and factual information. Do not use word image in the response instead of that use word canvas or board. Return only the solution with a very short explanation. If no input is provided, respond with No Problem Provided!";
 
       const result = await model.generateContent([prompt, imagePart]);
       setResp(result.response.text());
@@ -102,7 +70,8 @@ const App = ({ onLogout, userEmail }) => {
   const handleLogoutClick = async () => {
     try {
       await supabase.auth.signOut();
-      sessionStorage.clear();
+      sessionStorage.removeItem("supabase_token");
+      sessionStorage.removeItem("supabase_user");
       if (canvasDraw) canvasDraw.clear();
       setResp("");
       if (onLogout) onLogout();
@@ -113,37 +82,31 @@ const App = ({ onLogout, userEmail }) => {
 
   // ✅ Razorpay payment
   const handleUpgrade = async () => {
-    if (isUpgrading) return; // prevent double clicks
-    setIsUpgrading(true);
-
     const options = {
-      key: import.meta.env.VITE_RAZORPAY_TEST_KEY,
-      amount: 1000 * 100,
+      key: import.meta.env.VITE_RAZORPAY_TEST_KEY, // Replace with your Razorpay test key
+      amount: 1000 * 100, // 1000 INR in paise
       currency: "INR",
       name: "AImagine Board",
       description: "Premium Plan - 1 Month",
       handler: async function (response) {
-        try {
-          const expiryDate = new Date();
-          expiryDate.setMonth(expiryDate.getMonth() + 1);
+        const expiryDate = new Date();
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
 
-          const { error } = await supabase.from("premium_users").upsert([
+        const { error } = await supabase
+          .from("premium_users")
+          .upsert([
             {
-              email: userEmail.toLowerCase().trim(),
+              email: userEmail,
               expiry: expiryDate.toISOString(),
             },
           ]);
 
-          if (error) throw error;
-
+        if (error) {
+          console.error("Supabase insert error:", error);
+        } else {
           setPlan("Premium");
           alert("✅ Payment successful! Premium activated for 1 month.");
           setShowPlanModal(false);
-        } catch (err) {
-          console.error("Supabase insert error:", err);
-          alert("Something went wrong while upgrading. Please try again.");
-        } finally {
-          setIsUpgrading(false);
         }
       },
       prefill: {
@@ -202,15 +165,9 @@ const App = ({ onLogout, userEmail }) => {
               <button
                 onClick={handleSaveAsBase64}
                 className="btn btn-success"
-                disabled={isLoading || plan !== "Premium"}
+                disabled={isLoading}
               >
-                {isLoading ? (
-                  <Loader className="animate-spin mx-auto" size={24} />
-                ) : plan === "Premium" ? (
-                  "Calculate"
-                ) : (
-                  "Premium Only"
-                )}
+                {isLoading ? <Loader className="animate-spin mx-auto" size={24} /> : "Calculate"}
               </button>
               <button
                 onClick={() => {
@@ -223,15 +180,15 @@ const App = ({ onLogout, userEmail }) => {
               </button>
             </div>
 
-            {/* Plan Button */}
+            {/* 🔥 Plan Button */}
             <button
               onClick={() => setShowPlanModal(true)}
               className="btn btn-outline text-yellow-400 border-yellow-500 hover:bg-yellow-600/20"
             >
-              <Crown className="mr-2" size={18} /> {plan}
+              <Crown className="mr-2" size={18} /> {plan} Plan
             </button>
 
-            {/* Logout */}
+            {/* 🔥 Logout button */}
             <button
               onClick={handleLogoutClick}
               className="btn btn-outline text-red-400 border-red-500 hover:bg-red-600/20"
@@ -245,7 +202,7 @@ const App = ({ onLogout, userEmail }) => {
         <hr className="bg-gray-700 border-0 h-[1px]" />
       </div>
 
-      {/* Canvas */}
+      {/* Canvas area */}
       <div className="flex-1 relative">
         <CanvasDraw
           hideGrid={true}
@@ -261,7 +218,7 @@ const App = ({ onLogout, userEmail }) => {
         />
       </div>
 
-      {/* Plan Modal */}
+      {/* 💠 Plan Modal */}
       {showPlanModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
           <div className="bg-gray-900 text-white p-8 rounded-2xl w-80 shadow-xl text-center">
@@ -271,16 +228,8 @@ const App = ({ onLogout, userEmail }) => {
             {plan === "Free" ? (
               <>
                 <p className="text-gray-400 mb-4">Upgrade to Premium for ₹1000/month</p>
-                <button
-                  onClick={handleUpgrade}
-                  className="btn btn-success w-full"
-                  disabled={isUpgrading}
-                >
-                  {isUpgrading ? (
-                    <Loader className="animate-spin mx-auto" size={20} />
-                  ) : (
-                    "Upgrade Now"
-                  )}
+                <button onClick={handleUpgrade} className="btn btn-success w-full">
+                  Upgrade Now
                 </button>
               </>
             ) : (
