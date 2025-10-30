@@ -1,0 +1,6 @@
+{
+  "frontend": {
+    "path": "./frontend",
+    "start": "npm run dev"
+  }
+}

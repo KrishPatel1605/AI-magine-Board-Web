@@ -22,7 +22,7 @@ const App = ({ onLogout, userEmail }) => {
 
   let canvasDraw = null;
 
-  // ✅ Check if user is Premium
+  // Check if user is Premium
   useEffect(() => {
     const checkPlan = async () => {
       const { data, error } = await supabase
@@ -80,7 +80,7 @@ const App = ({ onLogout, userEmail }) => {
     }
   };
 
-  // ✅ Razorpay payment
+  // Razorpay payment
   const handleUpgrade = async () => {
     const options = {
       key: import.meta.env.VITE_RAZORPAY_TEST_KEY, // Replace with your Razorpay test key
@@ -124,7 +124,7 @@ const App = ({ onLogout, userEmail }) => {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Response text */}
-      <div className="absolute p-[10px] md:bottom-5 bottom-20 z-10 text-white">
+      <div className="absolute p-[10px] md:bottom-5 bottom-20 z-10 text-white text-xl md:text-2xl font-medium max-w-3xl">
         {resp}
       </div>
 
@@ -180,7 +180,7 @@ const App = ({ onLogout, userEmail }) => {
               </button>
             </div>
 
-            {/* 🔥 Plan Button */}
+            {/* Plan Button */}
             <button
               onClick={() => setShowPlanModal(true)}
               className="btn btn-outline text-yellow-400 border-yellow-500 hover:bg-yellow-600/20"
@@ -188,7 +188,7 @@ const App = ({ onLogout, userEmail }) => {
               <Crown className="mr-2" size={18} /> {plan} Plan
             </button>
 
-            {/* 🔥 Logout button */}
+            {/* Logout button */}
             <button
               onClick={handleLogoutClick}
               className="btn btn-outline text-red-400 border-red-500 hover:bg-red-600/20"
@@ -218,7 +218,7 @@ const App = ({ onLogout, userEmail }) => {
         />
       </div>
 
-      {/* 💠 Plan Modal */}
+      {/* Plan Modal */}
       {showPlanModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
           <div className="bg-gray-900 text-white p-8 rounded-2xl w-80 shadow-xl text-center">
